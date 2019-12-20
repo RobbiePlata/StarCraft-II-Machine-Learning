@@ -5,9 +5,57 @@ from absl import app
 import random
 
 class PyAgent(base_agent.BaseAgent):
+    
     def step(self, obs):
         super(PyAgent, self).step(obs)
+
+        if buildPylon(self, obs):
+            x = random.randint(0, 83)
+            y = random.randint(0, 83)
+            return actions.FUNCTIONS.Build_Pylon_screen('now', (x, y))
+
+        if buildGateway(self, obs):
+            x = random.randint(0, 83)
+            y = random.randint(0, 83)
+            return actions.FUNCTIONS.Build_Gateway_screen('now', (x, y))
+        
+        workers = [unit for unit in obs.observation['feature_units']
+            if unit.unit_type == units.Protoss.Probe
+        ]
+        if len(workers) > 0:
+            worker = random.choice(workers)
+            return actions.FUNCTIONS.select_point("select_all_type", (worker.x, worker.y))
+
+
         return actions.FUNCTIONS.no_op()
+
+    def get_units_by_type(self, obs, unit_type):
+        return [unit for unit in obs.observation.feature_units 
+            if unit.unit_type == unit_type]
+
+    def unit_type_is_selected(self, obs, unit_type):
+        if (len(obs.observation.single_select) > 0 and obs.observation.single_select[0].unit_type == unit_type):
+            return True
+
+        if (len(obs.observation.multi_select) > 0 and obs.observation.multi_select[0].unit_type == unit_type):
+            return True
+        return False
+
+def buildPylon(self, obs):
+    pylons = self.get_units_by_type(obs, units.Protoss.Pylon)
+    if len(pylons) == 0:
+        if self.unit_type_is_selected(obs, units.Protoss.Probe):
+            if(actions.FUNCTIONS.Build_Pylon_screen.id in obs.observation.available_actions):
+                return True
+            return False
+
+def buildGateway(self, obs):
+    gateway = self.get_units_by_type(obs, units.Protoss.Gateway)
+    if len(gateway) == 0:
+        if self.unit_type_is_selected(obs, units.Protoss.Probe):
+            if(actions.FUNCTIONS.Build_Gateway_screen.id in obs.observation.available_actions):
+                return True
+            return False
 
 def main(unused_argv):
     agent = PyAgent()
